@@ -19,14 +19,14 @@ st.sidebar.info("The motivation for making of this app is to improve the accessi
 
 
 
-new_model = keras.models.load_model('/content/12.h5')
+# new_model = keras.models.load_model('/content/12.h5')
 
-def load(filename):
-   np_image = Image.open(filename)
-   np_image = np.array(np_image).astype('float32')/255
-   np_image = transform.resize(np_image, (224, 224, 3))
-   np_image = np.expand_dims(np_image, axis=0)
-   return np_image
+# def load(filename):
+#    np_image = Image.open(filename)
+#    np_image = np.array(np_image).astype('float32')/255
+#    np_image = transform.resize(np_image, (224, 224, 3))
+#    np_image = np.expand_dims(np_image, axis=0)
+#    return np_image
 
-image = load('/content/drive/MyDrive/Dataset2/classes_test/MEL/ISIC_0001105_downsampled.jpg')
-np.argmax(new_model.predict(image), axis=1)
+# image = load('/content/drive/MyDrive/Dataset2/classes_test/MEL/ISIC_0001105_downsampled.jpg')
+# np.argmax(new_model.predict(image), axis=1)
