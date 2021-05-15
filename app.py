@@ -5,7 +5,7 @@ from skimage import transform
 import streamlit as st
 
 
-st.writ("""
+st.write("""
 #Check Your Moles!
 
 Check your weird looking moles before it gets too late!
