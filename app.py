@@ -1,6 +1,7 @@
 from tensorflow import keras
 from PIL import Image
 import numpy as np
+from numpy import array
 from skimage import transform
 import streamlit as st
 from keras.utils.np_utils import to_categorical
@@ -8,32 +9,21 @@ from keras.models import Sequential, load_model
 import os
 import io
 import pandas as pd
+import matplotlib.pyplot as plt 
+import seaborn as sns
+st.set_option('deprecation.showPyplotGlobalUse', False)
 
 MODELSPATH = "C:/Users/cwh93/Desktop/Final_Project/model/"
 DATAPATH = "C:/Users/cwh93/Desktop/Final_Project/data/"
 
 
-st.write("""
-
-        
+st.write("""        
             # Check Your Moles!
-        
-
 Check your weird looking moles before it gets too late.
 
 """)
 
-@st.cache
-def show_img(name):
-    img = Image.open(DATAPATH + name+'.jpg')
-    return img
-
-def load(filename):
-    np_image = Image.open(filename)
-    np_image = np.array(np_image).astype('float32')/255
-    np_image = transform.resize(np_image, (224, 224, 3))
-    np_image = np.expand_dims(np_image, axis=0)
-    return np_image
+code = {'AK': 0, 'BCC': 1, 'BKL': 2, 'DF': 3, 'MEL': 4, 'NV': 5, 'SCC': 6, 'VASC': 7}
 
 lesion_type_dict = {2: '**Benign keratosis-like lesions**', 5: '**Melanocytic nevi**', 3: '**Dermatofibroma**',
                         4: '**Melanoma**',6:'**Squamous cell carcinoma**', 7: '**Vascular lesions**', 1: '**Basal cell carcinoma**', 0: '**Actinic keratosis**'}
@@ -52,17 +42,104 @@ desc_dict={0:"is a rough, scaly patch on the skin that develops from years of su
             7:"is relatively common abnormalitie of the skin and underlying tissues, more commonly known as birthmarks."
             }
 
-model = load_model(MODELSPATH + 'model_final2')
+
+
+
+m_c=    array([[ 115,   35,    9,    0,    8,    0,    7,    0],
+       [  41,  591,    6,    1,   16,    2,    6,    2],
+       [  39,   51,  324,    1,   66,   33,   10,    1],
+       [   2,   10,    0,   32,    1,    2,    1,    0],
+       [  16,   47,   59,    2,  634,  139,    7,    1],
+       [  16,  145,  163,    8,  300, 1916,   17,   10],
+       [   9,   24,    5,    0,    5,    4,   79,    0],
+       [   0,    4,    2,    0,    5,    2,    0,   38]])
+
+true_n=[]
+true_p=[]
+false_p=[]
+false_n=[]
+for s in [2,3,5,7]:
+    for d in [0,1,4,6]:
+        true_n.append(m_c[s][s])
+        true_p.append(m_c[d][d])
+        false_p.append(m_c[d][s])
+        false_n.append(m_c[s][d])
+b_c=np.array([[sum(true_n)/4,sum(false_p)],[sum(false_n),sum(true_p)/4]])
+
+def plot_cm(cm):
+    plt.figure()
+    sns.heatmap(cm, annot=True, fmt='g', vmin=0, cbar=False, cmap='Blues')
+    if len(cm)==2:
+
+        plt.xticks(np.arange(2) + 0.5, ['not_dangerous','dangerous'])
+
+        plt.yticks(np.arange(2) + 0.5, ['not_dangerous','dangerous'])
+        plt.title("Binary Confusion Matrix")
+    if len(cm)==7:
+
+        plt.xticks(np.arange(7) + 0.5, code.keys())
+        plt.yticks(np.arange(7) + 0.5, code.keys())
+        plt.title("Multi-class Confusion Matrix")
+    
+    
+    plt.xlabel("Predicted")
+
+    plt.ylabel("Actual")
+
+    
+
+    plt.show()
+
+
+
+
+@st.cache
+def show_img(name):
+    img = Image.open(DATAPATH + name+'.jpg')
+    return img
+
+def load(filename):
+    np_image = Image.open(filename)
+    np_image = np.array(np_image).astype('float32')/255
+    np_image = transform.resize(np_image, (224, 224, 3))
+    np_image = np.expand_dims(np_image, axis=0)
+    return np_image
+
+
+def danger(reslt):
+    if reslt[0] in [0,1,4,6]:
+        st.write('**Our model could find your skin lesion to be similar to one of the dangerous types**')
+        st.write(lesion_type_dict[reslt[0]] ,'is one of the lesions that are dangerous or need to be checked up.')
+        st.write('Please visit a dermatologist soon.')
+        st.write('**please do not ignnore:**')
+        st.write('If our model said it looks dangerous, the probability of it being false is:',str((sum(false_p)/(sum(true_p)/4+sum(false_p)))*1000000//100/100)+'%')
+        plot_cm(b_c)
+    else:
+        st.write('Our model **could not** find your skin lesion to be similar to one of the dangerous types')
+       
+        st.write(lesion_type_dict[reslt[0]] ,'is one of the lesions that are safe!')
+        st.write("congratulations. You'll live.")
+
+        st.write('**please do not ignnore:**')
+        st.write('If our model said it looks safe, the probability of it being false is:',str((sum(false_n)/(sum(true_n)/4+sum(false_n)))*1000000//100/100)+'%')   
+        plot_cm(b_c)   
+    if st.checkbox('Binary Confusion matrix'): 
+        st.pyplot(plot_cm(b_c))
+    
+
+
+
+
+model = load_model(MODELSPATH + 'model_final2.h5')
 
 def output(input_):
     st.success("We have recieved the image. Processing...")
     if st.checkbox('Proceed now',key=input_[0]):
         image = load(DATAPATH + input_[0]+'.jpg')
         reslt=np.argmax(model.predict(image), axis=1)
-        st.write('The result is: '+lesion_type_dict[reslt[0]])
-        if reslt[0] in [0,1,5,6]:
-            st.write(lesion_type_dict[reslt[0]] ,'is one of the lesions that are dangerous or need to be checked up.')
-            st.write('Please visit a dermatologist soon.')
+        danger(reslt)
+
+        st.write('The detailed result is: '+lesion_type_dict[reslt[0]])
         st.header("What does it mean?")
         st.write(definition_dict[reslt[0]])
         st.write(lesion_type_dict[reslt[0]],desc_dict[reslt[0]])
@@ -129,12 +206,12 @@ if try_=="Pictures of your skin lesions":
 
         reslt=np.argmax(model.predict(image), axis=1)
         st.write('The result is: '+lesion_type_dict[reslt[0]])
-        if reslt[0] in [0,1,5,6]:
-            st.write(lesion_type_dict[reslt[0]] ,'is one of the lesions that are dangerous or need to be checked up.')
-            st.write('Please visit a dermatologist soon.')
+        danger(reslt)
         st.header("What does it mean?")
         st.write(definition_dict[reslt[0]])
         st.write(lesion_type_dict[reslt[0]],desc_dict[reslt[0]])
+
+
 
 
 
