@@ -11,5 +11,5 @@ here is the link of my final model: https://drive.google.com/file/d/1cIe7az90W3p
 
 app.py file runs with streamlit.
 
-# check out my presentation slides: it explains a lot
+# check out my presentation slides, it explains a lot
 https://docs.google.com/presentation/d/10GnqN5YHyJ1zm03KhA4BO0emQ1CzjdC0zamB9_BzNbM/edit?usp=sharing
